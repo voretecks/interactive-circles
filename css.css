@@ -1,0 +1,24 @@
+body {
+  margin: 0;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #f0f0f0;
+}
+canvas {
+  border: none;
+}
+.reset-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 20px;
+  padding: 10px;
+  background-color: #212121;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
