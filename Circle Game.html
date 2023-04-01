@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interactive Circles</title>
+
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f0f0f0;
+    }
+
+    canvas {
+      border: 1px solid #ccc;
+    }
+
+    #reset-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 8px 16px;
+      font-size: 14px;
+      color: #fff;
+      background-color: #007bff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      outline: none;
+      transition: background-color 0.3s ease;
+    }
+
+    #reset-btn:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="canvas"></canvas>
+  <button id="reset-btn">Reset Circles</button>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let scaleFactor = 1;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    class Circle {
+      constructor(x, y, radius, color) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.color = color;
+      }
+
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.closePath();
+      }
+
+      update(mouse) {
+  const distanceX = this.x - mouse.x + offsetX;
+  const distanceY = this.y - mouse.y + offsetY;
+  const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+
+  if (distance < 100 / Math.sqrt(scaleFactor)) {
+    this.x += distanceX * 0.01 * scaleFactor;
+    this.y += distanceY * 0.01 * scaleFactor;
+
+    // Only spawn particles when not dragging the canvas
+    if (!isDragging) {
+      for (let i = 0; i < 5 * (this.radius / 20); i++) {
+        particles.push(
+          new Particle(
+            this.x + Math.random() * this.radius - this.radius / 4,
+            this.y + Math.random() * this.radius - this.radius / 4,
+            Math.random() * 2,
+            this.color
+          )
+        );
+      }
+    }
+  }
+
+  this.draw();
+      }
+    }
+
+
+
+    function generateCircles() {
+      const visibleWidth = canvas.width / scaleFactor;
+      const visibleHeight = canvas.height / scaleFactor;
+
+      const areaWidth = visibleWidth * 3;
+      const areaHeight = visibleHeight * 3;
+      const targetCircleCount = 500;
+
+      while (circles.length < targetCircleCount) {
+        const x = Math.random() * areaWidth - visibleWidth + offsetX / scaleFactor;
+        const y = Math.random() * areaHeight - visibleHeight + offsetY / scaleFactor;
+        const radius = Math.random() * 20 + 10;
+        const color = `rgba(${Math.random() * 255}, ${
+          Math.random() * 255
+}, ${Math.random() * 255}, 0.7)`;
+
+        circles.push(new Circle(x, y, radius, color));
+      }
+    }
+
+    class Particle {
+      constructor(x, y, radius, color) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.color = color;
+        this.velocity = {
+          x: Math.random() - 0.5,
+          y: Math.random() - 0.5,
+        };
+        this.alpha = 1;
+      }
+
+      update() {
+        this.x += this.velocity.x;
+        this.y += this.velocity.y;
+        this.alpha -= 0.01;
+      }
+
+      draw() {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.closePath();
+        ctx.restore();
+      }
+    }
+
+    const circles = [];
+    generateCircles();
+
+    const mouse = {
+      x: undefined,
+      y: undefined,
+    };
+
+    const particles = [];
+
+    canvas.addEventListener("mousemove", (event) => {
+  mouse.x = event.clientX;
+  mouse.y = event.clientY;
+});
+
+
+
+    function zoom(event) {
+      event.preventDefault();
+      const prevScaleFactor = scaleFactor;
+      scaleFactor += event.deltaY * -0.001;
+      scaleFactor = Math.min(Math.max(scaleFactor, 0.5), 3);
+
+      const mouseX = event.clientX;
+      const mouseY = event.clientY;
+
+      offsetX -= (mouseX - canvas.width / 2) * (scaleFactor - prevScaleFactor);
+      offsetY -= (mouseY - canvas.height / 2) * (scaleFactor - prevScaleFactor);
+
+      generateCircles();
+    }
+
+    canvas.addEventListener("wheel", zoom, false);
+
+    let isDragging = false;
+    let startX, startY;
+
+    canvas.addEventListener("mousedown", (event) => {
+      startX = event.clientX - offsetX;
+      startY = event.clientY - offsetY;
+      isDragging = true;
+    });
+
+    canvas.addEventListener("mousemove", (event) => {
+      if (isDragging) {
+        offsetX = event.clientX - startX;
+        offsetY = event.clientY - startY;
+        generateCircles();
+      }
+    });
+
+    canvas.addEventListener("mouseup", () => {
+      isDragging = false;
+    });
+
+    function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.translate(offsetX, offsetY);
+  ctx.scale(scaleFactor, scaleFactor);
+
+  for (const circle of circles) {
+    circle.update(mouse);
+  }
+
+  ctx.restore();
+  requestAnimationFrame(animate);
+}
+
+    animate();
+
+    const resetBtn = document.getElementById("reset-btn");
+
+
+    resetBtn.addEventListener("click", () => {
+      circles.length = 0;
+      offsetX = 0;
+      offsetY = 0;
+      scaleFactor = 1;
+      generateCircles();
+    });
+
+    window.addEventListener("resize", () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      generateCircles();
+    });
+  </script>
+</body>
+</html>
